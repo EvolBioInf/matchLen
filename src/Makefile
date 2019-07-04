@@ -13,7 +13,7 @@ all : $(EXECFILE)
 $(EXECFILE) : $(OBJFILES)
 	$(CC) $(CFLAGS) -o $(EXECFILE) $(OBJFILES) $(LIBS)
 
-testMatchLen.c: matchLen.org
+testMatchLen.c: matchLen.org matchLen.c matchLen.h
 	bash ../scripts/org2nw matchLen.org | notangle -RtestMatchLen.c > testMatchLen.c	
 matchLen.c: matchLen.org
 	bash ../scripts/org2nw matchLen.org | notangle -RmatchLen.c > matchLen.c
