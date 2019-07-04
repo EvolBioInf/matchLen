@@ -1,0 +1,318 @@
+#+begin_src latex
+  \section{Introduction}
+  Exact matches in single strings or between several strings are the
+  basis for computer programs ranging from spell checkers to search
+  engines. They are also used extensively in the analysis of genome
+  sequences, which are among the largest texts we have. In genomics, two
+  types of exact matches are widely studied, fixed length and arbitrary
+  length. Matches with arbitrary length are the focus of the
+  \texttt{matchLen} library. They cannot be extended to the left or the
+  right without creating a mismatch. For example, in the string
+  $S=\texttt{AATTATG}$ the substrings $S[2...3]=S[5...6]=\texttt{AT}$
+  form such an unextendible match, also called a \emph{maximal} match.
+
+  The lengths of maximal matches in DNA sequences are particularly
+  interesting, as they are determined by relatedness. If two sequences
+  are very closely related, they might be identical, resulting in
+  one---potentially very long---exact match. Over time, mutations hit
+  the sequences, until the match lengths become indistinguishable from
+  those found between random sequences.
+
+  The library \texttt{matchLen} consists of functions to describe the
+  distribution of match lengths in random DNA sequences. The library is
+  based on the probability that the length of a maximal match starting
+  at position $i$, $X_i$, is less than some threshold,
+  $x$
+  \begin{equation}\label{eq:pro}
+  P(X_i < x)=\sum_{k=0}^x 2^x {x\choose k} g^k
+  \left(\frac{1}{2}-g\right)^{x-k}\left(1-g^k\left(\frac{1}{2}-g\right)^{x-k}\right)^{\ell},
+  \end{equation}
+  where $g$ is the frequency of the \texttt{G} or \texttt{C}
+  nucleotide, which are equal, and $\ell$ is twice the sequence
+  length~\cite{hau09:est}. In other words, the GC-content of a sequence is $2g$, and
+  double the sequence length is taken, because matches can be found on
+  the forward and reverse strands.
+
+  The mean and the variance of the match length distribution is computed
+  on the basis of~(\ref{eq:pro}). This in turn allows the detection of
+  effectively random genomic regions. Such regions have no close
+  homologue in the genome, hence they are \emph{unique}. Unique regions
+  in the human and mouse genomes are highly enriched for genes involved
+  in development~\cite{pir18:hig}. The explanation for this surprising
+  observation is based on the well-known fact that human and mouse
+  genomes are full of transposons. Any transposition creates a long
+  exact match between the copy and its source and hence a strong
+  deviation from the short matches under randomness. It follows that
+  regions that do conform to randomness have not fixed a transposon for
+  a long time, presumably, because a transposon insertion would be
+  highly deleterious. Many developmental genes were first identified
+  based on drastic malformations caused by artificial
+  mutatagenesis. Similarly, mammalian genomes can be read as the results
+  of natural transposon mutagenesis experiments carried out over
+  evolutionary time.
+
+  The library consists of two files, the interface \texttt{matchLen.h}
+  and the implementation \texttt{matchLen.c}.
+
+  \section{Interface}
+  The interface consists of public function declarations.
+#+end_src
+#+begin_src C <<matchLen.h>>=
+  #ifndef MATCH_LEN_H
+  #define MATCH_LEN_H
+  //<<Public function declarations>>
+  #endif
+#+end_src
+#+begin_src latex
+  The expectation of a random quantity is the sum of its possible values
+  multiplied by the probability that a particular value crops up. 
+  The probability of a match of length $x$ is
+  \[
+  P(X_i < x+1) - P(X_i < x).
+  \]
+  So the mean match length is~\cite{pir18:hig}
+  \[
+  \mu = \sum_{x=1}^{\ell}x(P(X_i\le x+1)-P(X_i\le x)).
+  \]
+  Since $P(X_i < x)$ is a function of sequence length and GC-content,
+  the mean match length is implemented as a function of these two
+  parameters.
+#+end_src
+#+begin_src C <<Public function declarations>>=
+  double meanMatchLen(long l, double g);
+#+end_src
+#+begin_src latex
+  Similarly, the variance of match lengths is~\cite{pir18:hig}
+  \begin{equation}
+  \sigma^2 = \sum_{x=1}^{\ell}x^2(P(X_i<x-1)-P(X_i<x-1))-\mu^2.
+  \end{equation}
+  The implementation is again a function of sequence length and GC
+  content.
+#+end_src
+#+begin_src C <<Public function declarations>>=
+  double varMatchLen(long l, double g);
+#+end_src
+#+begin_src latex
+   The match complexity, $C_{\rm m}$, of a region ranges between 0 for
+   exact repeats and an expectation of 1 for random
+   stretches~\cite{pir18:hig}. The distribution of $C_{\rm m}$ values in
+   windows of length $w$ is modeled as a normal
+   distribution~\cite{pir18:hig} with mean 1 and variance $\sigma^2/(\mu
+   w)$,
+   \begin{equation}
+   C_{\rm m}\sim N\left(1,\frac{\sigma^2}{\mu w}\right).
+   \end{equation}
+   This allows the computation of $C_{\rm m}$ quantiles using
+   \begin{equation}
+   F^{-1}(p)=1+\sqrt{\frac{2\sigma^2}{\mu w}}\mbox{erf}^{-1}(2p - 1),
+   \end{equation}
+  where $p$ is the cumulative probability corresponding to the quantile
+  sought and $\mbox{erf}^{-1}$ the inverse error function. Thus, apart
+  from sequence length and GC-content, which are required to calculate
+  $\mu$ and $\sigma^2$, computing $C_{\rm m}$ quantiles is based on two
+  more parameters, the window length, $w$, and the probability covered,
+  $p$.
+#+end_src
+#+begin_src C <<Public function declarations>>=
+  double quantMatchLen(long l, double g, int w, double p);
+#+end_src
+
+#+begin_src latex
+  \section{Implementation}
+  The implementation consists of the interface \texttt{matchLen.h},
+  other header files, private function declarations, and finally the
+  function implementations.
+#+end_src
+#+begin_src C <<matchLen.c>>=
+  #include "matchLen.h"
+  //<<Implementation includes>>
+  //<<Private function declarations>>
+  //<<Function implementations>>
+#+end_src
+#+begin_src latex
+  The mean match length is a sum over the probabilities of all possible
+  match lengths. As lengths increase, their probabilities rapidly become
+  zero, which is equivalent to the cumulative probability function
+  reaching 1, at which point the computation
+  stops. Equation~(\ref{eq:pro}) is implemented as \texttt{prob}.
+#+end_src
+#+begin_src C <<Function implementations>>=
+  double meanMatchLen(long l, double g) {
+    double cp = 0., m = 0.;
+    for (int x = 1; x < l; x++) {
+      double p = prob(l, g, x + 1) - prob(l, g, x);
+      m += x * p;
+      cp += p;
+      if (cp >= 1. - DBL_EPSILON)
+	return m;
+    }
+    return m;
+  }
+#+end_src
+#+begin_src latex
+The function \texttt{prob} is declared
+#+end_src
+#+begin_src C <<Private function declarations>>=
+  double prob(long l, double g, int x);
+#+end_src
+#+begin_src latex
+  and implements equation~(\ref{eq:pro}).
+#+end_src
+#+begin_src C <<Function implementations>>=
+  double prob(long l, double g, int x) {
+    // <<Adjust parameters>>
+    double s = 0.;
+    for (int k = 0; k <= x; k++) {
+      // <<Compute probability>>
+    }
+    return s;
+  }
+#+end_src
+#+begin_src latex
+  The parameters passed are sequence length, \texttt{l}, and GC-content,
+  \texttt{g}. The sequence length is multiplied by 2 to account for
+  inclusion of the forward and reverse strands. The GC-content is halved
+  to equal the frequency of \texttt{G} or \texttt{C}.
+#+end_src
+#+begin_src C <<Adjust parameters>>=
+  l *= 2;
+  g /= 2.;
+#+end_src
+#+begin_src latex
+  To improve numerical stability, the five factors that make up
+  equation(~\ref{eq:pro}) are computed in logarithmic space.
+#+end_src
+#+begin_src C <<Compute probability>>=
+  double l1, l2, l3, l4, l5;
+  l1 = log(pow(2, x));
+  l2 = gsl_sf_lnchoose(x, k);
+  l3 = log(pow(g, k));
+  l4 = log(pow(0.5 - g, x - k));
+  l5 = log(pow(1. - pow(g, k) * pow(0.5 - g, x - k), l));
+  s += exp(l1 + l2 + l3 + l4 + l5);
+#+end_src
+#+begin_src latex
+  The functions \texttt{pow}, \texttt{log}, and \texttt{exp} are defined
+  in \texttt{math.h}, the function \texttt{gsl\_sf\_lnchoose} is one of
+  the special functions defined in \texttt{gsl\_sf\_gamma}.
+#+end_src
+#+begin_src C <<Implementation includes>>=
+  #include <math.h>
+  #include <gsl/gsl_sf_gamma.h>
+#+end_src
+#+begin_src latex
+  The computation of the variance has a similar shape as the computation
+  of the mean.
+#+end_src
+#+begin_src C <<Function implementations>>=
+  double varMatchLen(long l, double g) {
+    double cp = 0., v = 0.;
+    double m = meanMatchLen(l, g);
+    for (int x = 1; x < l; x++) {
+      double p = prob(l, g, x + 1) - prob(l, g, x);
+      v += x * x * p;
+      cp += p;
+      if (cp >= 1. - DBL_EPSILON)
+	return v - m * m;
+    }
+    return v - m * m;
+  }
+#+end_src
+#+begin_src latex
+  The constant \texttt{DBL\_EPSILON} is defined in \texttt{float.h}.
+#+end_src
+#+begin_src C <<Implementation includes>>=
+  #include <float.h>
+#+end_src
+#+begin_src latex
+  The quantile computation is based on the inverse error function.
+#+end_src
+#+begin_src C <<Function implementations>>=
+  double quantMatchLen(long l, double g, int w, double p) {
+    double m = meanMatchLen(l, g);
+    double v = varMatchLen(l, g);
+    v /= m * w;
+    double r = 1. + sqrt(2 * v) * erfinv(2. * p - 1.);
+    return r;
+  }
+#+end_src
+#+begin_src latex
+  The function \texttt{sqrt} is defined in \texttt{math.h}, which has
+  already been included. And while this also defines \texttt{erf}, I was
+  surprised to find that its inverse, $\texttt{erf}^{-1}$, is neither
+  part of the standard math library nor of the GNU Scienfific
+  Library. So it is declared
+#+end_src
+#+begin_src C <<Private function declarations>>=
+  float erfinv(float x);
+#+end_src
+#+begin_src latex
+  and implemented using code I copied from
+  \begin{verbatim}
+  https://stackoverflow.com/questions/27229371/inverse-error-function-in-c
+  \end{verbatim}
+  in the file \texttt{common/erfinv.c}.
+
+  This concludes the implementation of \texttt{matchLen}, time to test it.
+  \section{Testing}
+  The library consists of three public functions,
+  \begin{enumerate}
+    \item \texttt{meanMatchLen},
+    \item \texttt{varMatchLen}, and
+    \item \texttt{quantMatchLen}.
+  \end{enumerate}
+  Since the quantile is a function of the mean and the variance, only
+  the quantile function is tested once the interaction with the user is
+  complete.
+#+end_src
+#+begin_src C <<testMatchLen.c>>=
+  #include "matchLen.h"
+  //<<Test includes>>
+  int main(int argc, char **argv) {
+    //<<Test user interaction>>
+    //<<Test quantile>>
+  }
+#+end_src
+#+begin_src latex
+  To interact with the user, the number of arguments is checked. If this
+  is less than five, the user needs assistance, which is given as a
+  usage string.
+#+end_src
+#+begin_src C <<Test user interaction>>=
+  if (argc < 5) {
+    printf("Usage: testMatchLen <seqLen> <gc> <winLen> <p>\n");
+    exit(0);
+  }
+#+end_src
+#+begin_src latex
+  The function \texttt{printf} is defined in \texttt{stdio.h}.
+#+end_src
+#+begin_src C <<Test includes>>=
+  #include <stdio.h>
+#+end_src
+#+begin_src latex
+  To test the quantile computation, the parameters are read from the
+  argument vector and the corresponding result is printed.
+#+end_src
+#+begin_src C <<Test quantile>>=
+  long l  = atof(argv[1]);
+  float g = atof(argv[2]);
+  int w   = atof(argv[3]);
+  float p = atof(argv[4]);
+  double q = quantMatchLen(l, g, w, p);
+  printf("#l\tg\tw\tp\tq\n");
+  printf("%ld\t%.2f\t%d\t%.2f\t%f\n", l, g, w, p, q);
+#+end_src
+#+begin_src latex
+  The conversion functions \texttt{atof} is defined in
+  \texttt{stdlib.h}.
+#+end_src
+#+begin_src C <<Test includes>>=
+  #include <stdlib.h>
+#+end_src
+#+begin_src latex
+  \section{List of Code Chunks}
+    \nowebchunks
+  \section{Index}
+  \nowebindex
+#+end_src

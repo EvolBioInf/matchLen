@@ -1,8 +1,6 @@
 all:
 	make -C common
 	make -C src
-	mkdir -p build
-	cp src/matchLen build
 test:
 	@make -s -C src test
 clean:

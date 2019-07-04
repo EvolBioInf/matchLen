@@ -7,4 +7,11 @@ doc/*.log
 doc/*.pdf
 doc/date.tex
 doc/version.tex
+doc/matchLen.bbl
+doc/matchLen.blg
+doc/text.tex
 src/matchLen
+src/matchLen.h
+src/matchLen.c
+src/testMatchLen
+src/testMatchLen.c
