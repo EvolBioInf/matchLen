@@ -4,19 +4,20 @@
   basis for computer programs ranging from spell checkers to search
   engines. They are also used extensively in the analysis of genome
   sequences, which are among the largest texts we have. In genomics, two
-  types of exact matches are widely studied, fixed length and arbitrary
-  length. Matches with arbitrary length are the focus of the
-  \texttt{matchLen} library. They cannot be extended to the left or the
-  right without creating a mismatch. For example, in the string
-  $S=\texttt{AATTATG}$ the substrings $S[2...3]=S[5...6]=\texttt{AT}$
-  form such an unextendible match, also called a \emph{maximal} match.
+  types of exact matches are widely studied, matches with fixed length
+  and matches with arbitrary length. Matches with arbitrary length are
+  the focus of the \texttt{matchLen} library. They cannot be extended to
+  the left or the right without creating a mismatch. For example, in the
+  string $S=\texttt{AATTATG}$ the substrings
+  $S[2...3]=S[5...6]=\texttt{AT}$ form such an unextendible match, also
+  called a \emph{maximal} match.
 
   The lengths of maximal matches in DNA sequences are particularly
   interesting, as they are determined by relatedness. If two sequences
   are very closely related, they might be identical, resulting in
   one---potentially very long---exact match. Over time, mutations hit
-  the sequences, until the match lengths become indistinguishable from
-  those found between random sequences.
+  the sequences, interrupting until the match lengths become
+  indistinguishable from those found between random sequences.
 
   The library \texttt{matchLen} consists of functions to describe the
   distribution of match lengths in random DNA sequences. The library is
@@ -34,22 +35,22 @@
   the forward and reverse strands.
 
   The mean and the variance of the match length distribution is computed
-  on the basis of~(\ref{eq:pro}). This in turn allows the detection of
-  effectively random genomic regions. Such regions have no close
-  homologue in the genome, hence they are \emph{unique}. Unique regions
-  in the human and mouse genomes are highly enriched for genes involved
-  in development~\cite{pir18:hig}. The explanation for this surprising
-  observation is based on the well-known fact that human and mouse
-  genomes are full of transposons. Any transposition creates a long
-  exact match between the copy and its source and hence a strong
+  on the basis of equation~(\ref{eq:pro}). This in turn allows the
+  detection of effectively random genomic regions. Such regions have no
+  close homologue in the genome, hence they are \emph{unique}. In the
+  human and mouse genomes, unique regions are highly enriched for genes
+  involved in development~\cite{pir18:hig}. The explanation for this
+  surprising observation is based on the well-known fact that human and
+  mouse genomes are full of transposons. Any transposition creates a
+  long exact match between the copy and its source, and hence a strong
   deviation from the short matches under randomness. It follows that
   regions that do conform to randomness have not fixed a transposon for
-  a long time, presumably, because a transposon insertion would be
-  highly deleterious. Many developmental genes were first identified
-  based on drastic malformations caused by artificial
-  mutatagenesis. Similarly, mammalian genomes can be read as the results
-  of natural transposon mutagenesis experiments carried out over
-  evolutionary time.
+  a long time, presumably because a transposon insertion would be highly
+  deleterious. Many developmental genes were first identified based on
+  drastic malformations caused by artificial mutatagenesis. Similarly,
+  mammalian genomes can be read as the results of natural transposon
+  mutagenesis experiments carried out over evolutionary time. Unique
+  regions are those most vulnerable to transposon insertion.
 
   The library consists of two files, the interface \texttt{matchLen.h}
   and the implementation \texttt{matchLen.c}.
@@ -131,10 +132,11 @@
 #+end_src
 #+begin_src latex
   The mean match length is a sum over the probabilities of all possible
-  match lengths. As lengths increase, their probabilities rapidly become
-  zero, which is equivalent to the cumulative probability function
-  reaching 1, at which point the computation
-  stops. Equation~(\ref{eq:pro}) is implemented as \texttt{prob}.
+  match lengths. As match lengths increase, their probabilities rapidly
+  become zero, which is equivalent to the cumulative probability
+  function reaching 1, at which point the computation
+  stops. Equation~(\ref{eq:pro}) is implemented as function
+  \texttt{prob}.
 #+end_src
 #+begin_src C <<Function implementations>>=
   double meanMatchLen(long l, double g) {
@@ -150,13 +152,19 @@
   }
 #+end_src
 #+begin_src latex
+  The constant \texttt{DBL\_EPSILON} is defined in \texttt{float.h}.
+#+end_src
+#+begin_src C <<Implementation includes>>=
+  #include <float.h>
+#+end_src
+#+begin_src latex
 The function \texttt{prob} is declared
 #+end_src
 #+begin_src C <<Private function declarations>>=
   double prob(long l, double g, int x);
 #+end_src
 #+begin_src latex
-  and implements equation~(\ref{eq:pro}).
+and implements equation~(\ref{eq:pro}).
 #+end_src
 #+begin_src C <<Function implementations>>=
   double prob(long l, double g, int x) {
@@ -180,7 +188,7 @@ The function \texttt{prob} is declared
 #+end_src
 #+begin_src latex
   To improve numerical stability, the five factors that make up
-  equation(~\ref{eq:pro}) are computed in logarithmic space.
+  equation~(\ref{eq:pro}) are computed in logarithmic space.
 #+end_src
 #+begin_src C <<Compute probability>>=
   double l1, l2, l3, l4, l5;
@@ -219,13 +227,7 @@ The function \texttt{prob} is declared
   }
 #+end_src
 #+begin_src latex
-  The constant \texttt{DBL\_EPSILON} is defined in \texttt{float.h}.
-#+end_src
-#+begin_src C <<Implementation includes>>=
-  #include <float.h>
-#+end_src
-#+begin_src latex
-  The quantile computation is based on the inverse error function.
+  The quantile computation is based on the inverse error function, \texttt{erfinv}.
 #+end_src
 #+begin_src C <<Function implementations>>=
   double quantMatchLen(long l, double g, int w, double p) {
@@ -248,9 +250,11 @@ The function \texttt{prob} is declared
 #+end_src
 #+begin_src latex
   and implemented using code I copied from
+  \small
   \begin{verbatim}
   https://stackoverflow.com/questions/27229371/inverse-error-function-in-c
   \end{verbatim}
+  \normalsize
   in the file \texttt{common/erfinv.c}.
 
   This concludes the implementation of \texttt{matchLen}, time to test it.
@@ -262,8 +266,8 @@ The function \texttt{prob} is declared
     \item \texttt{quantMatchLen}.
   \end{enumerate}
   Since the quantile is a function of the mean and the variance, only
-  the quantile function is tested once the interaction with the user is
-  complete.
+  the quantile function is tested once the interaction with the user has
+  been completed.
 #+end_src
 #+begin_src C <<testMatchLen.c>>=
   #include "matchLen.h"
@@ -292,7 +296,9 @@ The function \texttt{prob} is declared
 #+end_src
 #+begin_src latex
   To test the quantile computation, the parameters are read from the
-  argument vector and the corresponding result is printed.
+  argument vector. Since the sequence length and the window length can
+  be very large integers, they are parsed as floats to allow input like
+  \texttt{1e+8} for $10^8$. At the end the result is printed.
 #+end_src
 #+begin_src C <<Test quantile>>=
   long l  = atof(argv[1]);
@@ -304,7 +310,7 @@ The function \texttt{prob} is declared
   printf("%ld\t%.2f\t%d\t%.2f\t%f\n", l, g, w, p, q);
 #+end_src
 #+begin_src latex
-  The conversion functions \texttt{atof} is defined in
+  The conversion function \texttt{atof} is defined in
   \texttt{stdlib.h}.
 #+end_src
 #+begin_src C <<Test includes>>=
@@ -313,6 +319,6 @@ The function \texttt{prob} is declared
 #+begin_src latex
   \section{List of Code Chunks}
     \nowebchunks
-  \section{Index}
-  \nowebindex
+  %% \section{Index}
+  %% \nowebindex
 #+end_src
