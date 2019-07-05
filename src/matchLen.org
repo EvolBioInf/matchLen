@@ -115,7 +115,7 @@
   $p$.
 #+end_src
 #+begin_src C <<Public function declarations>>=
-  double quantMatchLen(long l, double g, int w, double p);
+  double quantCm(long l, double g, int w, double p);
 #+end_src
 
 #+begin_src latex
@@ -230,7 +230,7 @@ and implements equation~(\ref{eq:pro}).
   The quantile computation is based on the inverse error function, \texttt{erfinv}.
 #+end_src
 #+begin_src C <<Function implementations>>=
-  double quantMatchLen(long l, double g, int w, double p) {
+  double quantCm(long l, double g, int w, double p) {
     double m = meanMatchLen(l, g);
     double v = varMatchLen(l, g);
     v /= m * w;
@@ -263,7 +263,7 @@ and implements equation~(\ref{eq:pro}).
   \begin{enumerate}
     \item \texttt{meanMatchLen},
     \item \texttt{varMatchLen}, and
-    \item \texttt{quantMatchLen}.
+    \item \texttt{quantCm}.
   \end{enumerate}
   Since the quantile is a function of the mean and the variance, only
   the quantile function is tested once the interaction with the user has
@@ -305,7 +305,7 @@ and implements equation~(\ref{eq:pro}).
   float g = atof(argv[2]);
   int w   = atof(argv[3]);
   float p = atof(argv[4]);
-  double q = quantMatchLen(l, g, w, p);
+  double q = quantCm(l, g, w, p);
   printf("#l\tg\tw\tp\tq\n");
   printf("%ld\t%.2f\t%d\t%.2f\t%f\n", l, g, w, p, q);
 #+end_src
